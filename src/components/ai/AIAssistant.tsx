@@ -8,11 +8,7 @@ import { Send } from 'lucide-react';
 export function AIAssistant() {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
-    {
-      role: 'assistant',
-      content:
-        'Hi! I\'m your financial assistant 💰 Ask me anything like "How much did I spend on food this month?" or "Can I afford a $200 purchase?"',
-    },
+    { role: 'assistant', content: 'Hi! I\'m your financial assistant. Ask me anything about your finances, like "How much did I spend on food this month?" or "Can I afford a $200 purchase?"' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -22,9 +18,11 @@ export function AIAssistant() {
     e.preventDefault();
     if (!query.trim() || isLoading) return;
 
+    // Add user message
     setMessages(prev => [...prev, { role: 'user', content: query }]);
     setIsLoading(true);
 
+    // Process the query and generate a response
     setTimeout(() => {
       const response = generateResponse(query);
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
@@ -33,57 +31,60 @@ export function AIAssistant() {
     }, 1000);
   };
 
-  const suggestFollowUps = () => {
-    const suggestions = [
-      "Want to know how much you spent this month?",
-      "Need help planning a purchase?",
-      "Curious about your savings rate?",
-      "Thinking of making a big purchase?",
-    ];
-    return suggestions[Math.floor(Math.random() * suggestions.length)];
-  };
-
   const generateResponse = (userQuery: string): string => {
     const lowerQuery = userQuery.toLowerCase();
 
-    // Casual responses
-    if (['ok', 'thanks', 'thank you', 'cool', 'got it', 'great','fine','alright'].some(p => lowerQuery.includes(p))) {
-      return `Glad I could help! 😊 Let me know if you have more questions about your money.`;
+    // Casual greeting or conversation responses
+    if (lowerQuery.includes('hello') || lowerQuery.includes('hi')) {
+      return 'Hello! How can I assist you with your finances today?';
     }
 
-    if (['bye', 'goodbye', 'see you', 'talk later'].some(p => lowerQuery.includes(p))) {
-      return `Alright, take care! I'm always here if you need help with your finances. 👋`;
+    if (lowerQuery.includes('ok')) {
+      return 'Great! Let me know if you need help with anything else.';
     }
 
-    // Financial queries
+    if (lowerQuery.includes('what\'s up') || lowerQuery.includes('how are you')) {
+      return 'I\'m doing well, thank you for asking! How can I help with your financial questions today?';
+    }
+
+    if (lowerQuery.includes('good') || lowerQuery.includes('thanks')) {
+      return 'You\'re welcome! 😊 Let me know if you need any further assistance.';
+    }
+
+    // Check balance or money-related questions
     if (lowerQuery.includes('balance') || lowerQuery.includes('money') || lowerQuery.includes('have')) {
-      return `Your current balance is $${balance.toFixed(2)}.\n\n${suggestFollowUps()}`;
+      return `Your current balance is $${balance.toFixed(2)}.`;
     }
 
+    // Handle food spending
     if (lowerQuery.includes('spend') && lowerQuery.includes('food')) {
       const foodSpending = transactions
         .filter(t => t.category === 'food' && t.type === 'expense')
         .reduce((sum, t) => sum + t.amount, 0);
-      return `You've spent $${foodSpending.toFixed(2)} on food so far.\n\nWant to see spending in other categories too?`;
+      return `You've spent $${foodSpending.toFixed(2)} on food.`;
     }
 
+    // Handle income-related questions
     if (lowerQuery.includes('income') || lowerQuery.includes('earn')) {
-      return `Your total income is $${income.toFixed(2)}.\n\n${suggestFollowUps()}`;
+      return `Your total income is $${income.toFixed(2)}.`;
     }
 
+    // Handle expense-related questions
     if (lowerQuery.includes('expenses') || lowerQuery.includes('spent')) {
-      return `Your total expenses are $${expenses.toFixed(2)}.\n\nNeed tips to reduce spending?`;
+      return `Your total expenses are $${expenses.toFixed(2)}.`;
     }
 
+    // Handle savings-related questions
     if (lowerQuery.includes('save') || lowerQuery.includes('saving')) {
       const savingsRate = income > 0 ? ((income - expenses) / income) * 100 : 0;
       return `You're currently saving ${savingsRate.toFixed(1)}% of your income. ${
         savingsRate >= 20
-          ? "Nice job! You’re basically a budgeting ninja 🥷💰."
-          : "Let’s try to bump that up — even 5% more can make a difference 📈."
+          ? 'That\'s great! Financial experts recommend saving at least 20% of your income.'
+          : 'Financial experts recommend saving at least 20% of your income. Consider looking for areas to reduce expenses.'
       }`;
     }
 
+    // Handle affordability checks
     if (lowerQuery.includes('afford') && lowerQuery.match(/\$\d+/)) {
       const amountMatch = lowerQuery.match(/\$(\d+)/);
       if (amountMatch) {
@@ -91,15 +92,23 @@ export function AIAssistant() {
         if (balance >= amount * 2) {
           return `Yes, you can comfortably afford a $${amount} purchase, as it's less than half of your current balance of $${balance.toFixed(2)}.`;
         } else if (balance >= amount) {
-          return `You have enough for a $${amount} purchase, but it would use a significant portion of your balance. Think it through 🧠.`;
+          return `You have enough money for a $${amount} purchase, but it would use a significant portion of your balance of $${balance.toFixed(2)}. Consider if this purchase is necessary.`;
         } else {
-          return `A $${amount} purchase exceeds your current balance of $${balance.toFixed(2)}. I’d recommend holding off for now.`;
+          return `A $${amount} purchase would exceed your current balance of $${balance.toFixed(2)}. I would recommend against it unless absolutely necessary.`;
         }
       }
     }
 
-    // Fallback response
-    return `Hmm, I’m not sure how to answer that yet 🤔. Try asking about your balance, income, expenses, savings, or if you can afford something.`;
+    // Handle total spending query
+    if (lowerQuery.includes('what') && lowerQuery.includes('spend')) {
+      const totalSpending = transactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+      return `Your total spending this month is $${totalSpending.toFixed(2)}.`;
+    }
+
+    // Fallback response if nothing matches
+    return `I'm still learning to answer complex financial questions. Could you try asking in a different way or ask about your balance, spending in specific categories, or if you can afford a specific purchase?`;
   };
 
   return (
@@ -113,16 +122,10 @@ export function AIAssistant() {
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`flex ${
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              }`}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] p-3 rounded-lg ${
-                  message.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted'
-                }`}
+                className={`max-w-[80%] p-3 rounded-lg ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
               >
                 {message.content}
               </div>
